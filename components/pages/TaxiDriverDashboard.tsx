@@ -73,6 +73,14 @@ export default function TaxiDriverDashboard({
   const [completedReservations, setCompletedReservations] = useState<string[]>([])
   const [showCalendarView, setShowCalendarView] = useState(false)
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<{ day: number; month: Date } | null>(null)
+  const [reservations, setReservations] = useState<Reservation[]>([])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = JSON.parse(localStorage.getItem("reservations") || "[]")
+      setReservations(stored)
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -354,8 +362,6 @@ export default function TaxiDriverDashboard({
       return () => clearInterval(interval)
     }
   }, [activeTab])
-
-  const reservations: Reservation[] = JSON.parse(localStorage.getItem("reservations") || "[]")
 
   const filteredRequests = reservations
     .filter((r) => !r.acceptedBy)
