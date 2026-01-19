@@ -2,19 +2,33 @@
 
 import { useState, useCallback } from "react"
 
-interface GeolocationCoordinates {
+export interface GeolocationCoordinates {
   lat: number
   lon: number
   address?: string
 }
 
-export function useGeolocation() {
+interface UseGeolocationReturn {
+  coordinates: GeolocationCoordinates | null
+  address: string
+  error: string
+  isLoading: boolean
+  getCurrentLocation: () => Promise<GeolocationCoordinates>
+  watchLocation: (
+    onLocationChange: (loc: GeolocationCoordinates) => void,
+    interval?: number
+  ) => () => void
+  reverseGeocode: (lat: number, lon: number) => Promise<string>
+}
+
+export function useGeolocation(): UseGeolocationReturn {
   const [coordinates, setCoordinates] = useState<GeolocationCoordinates | null>(null)
   const [address, setAddress] = useState<string>("")
   const [error, setError] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const reverseGeocode = useCallback(async (lat: number, lon: number) => {
+  // Reverse geocoding API
+  const reverseGeocode = useCallback(async (lat: number, lon: number): Promise<string> => {
     try {
       const response = await fetch("/api/geolocation/reverse-geocode", {
         method: "POST",
@@ -23,37 +37,43 @@ export function useGeolocation() {
       })
 
       if (!response.ok) throw new Error("Failed to reverse geocode")
+
       const data = await response.json()
-      return data.address
+      return data.address || "Ubicación desconocida"
     } catch (err) {
       console.error("Reverse geocoding error:", err)
       return "Ubicación desconocida"
     }
   }, [])
 
-  const getCurrentLocation = useCallback(async () => {
+  // Obtener ubicación actual
+  const getCurrentLocation = useCallback(async (): Promise<GeolocationCoordinates> => {
     setIsLoading(true)
     setError("")
 
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        })
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocalización no soportada"))
+        } else {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          })
+        }
       })
 
       const { latitude, longitude } = position.coords
       const addr = await reverseGeocode(latitude, longitude)
+      const loc: GeolocationCoordinates = { lat: latitude, lon: longitude, address: addr }
 
-      setCoordinates({ lat: latitude, lon: longitude, address: addr })
+      setCoordinates(loc)
       setAddress(addr)
-
-      return { lat: latitude, lon: longitude, address: addr }
+      return loc
     } catch (err: any) {
       const errorMsg =
-        err.message === "User denied geolocation"
+        err?.code === 1 || err?.message === "User denied Geolocation"
           ? "Debes permitir el acceso a tu ubicación"
           : "No se pudo obtener tu ubicación"
       setError(errorMsg)
@@ -63,34 +83,41 @@ export function useGeolocation() {
     }
   }, [reverseGeocode])
 
+  // Rastrear ubicación en tiempo real
   const watchLocation = useCallback(
-    (onLocationChange: (loc: GeolocationCoordinates) => void, interval = 5000) => {
+    (
+      onLocationChange: (loc: GeolocationCoordinates) => void,
+      interval: number = 5000
+    ): (() => void) => {
+      if (!navigator.geolocation) {
+        setError("Geolocalización no soportada")
+        return () => {}
+      }
+
       const watchId = navigator.geolocation.watchPosition(
         async (position) => {
-          const { latitude, longitude } = position.coords
-          const addr = await reverseGeocode(latitude, longitude)
-          const newLoc = { lat: latitude, lon: longitude, address: addr }
-          setCoordinates(newLoc)
-          setAddress(addr)
-          onLocationChange(newLoc)
-        },
-        (err) => {
-          if (err.code === 1) {
-            setError("Ubicación desactivada")
-          } else {
-            setError("Error al obtener ubicación")
+          try {
+            const { latitude, longitude } = position.coords
+            const addr = await reverseGeocode(latitude, longitude)
+            const loc: GeolocationCoordinates = { lat: latitude, lon: longitude, address: addr }
+            setCoordinates(loc)
+            setAddress(addr)
+            onLocationChange(loc)
+          } catch {
+            setError("Error al obtener dirección")
           }
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
+        (err) => {
+          if (err.code === 1) setError("Ubicación desactivada")
+          else setError("Error al obtener ubicación")
         },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       )
 
+      // Función para limpiar el watch
       return () => navigator.geolocation.clearWatch(watchId)
     },
-    [reverseGeocode],
+    [reverseGeocode]
   )
 
   return {

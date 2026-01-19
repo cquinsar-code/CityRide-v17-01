@@ -13,19 +13,28 @@ export async function DELETE(req: Request) {
             return cookieStore.getAll()
           },
         },
-      },
+      }
     )
 
     const { type } = await req.json()
 
     if (type === "reservation") {
-      const { error } = await supabase.from("reservations").delete().eq("is_fake", true)
+      const { error } = await supabase
+        .from("reservations")
+        .delete()
+        .eq("is_fake", true)
       if (error) throw error
     } else if (type === "taxi_driver") {
-      const { error } = await supabase.from("taxi_drivers").delete().eq("is_fake", true)
+      const { error } = await supabase
+        .from("taxi_drivers")
+        .delete()
+        .eq("is_fake", true)
       if (error) throw error
     } else if (type === "activity_log") {
-      const { error } = await supabase.from("activity_logs").delete().eq("is_fake", true)
+      const { error } = await supabase
+        .from("activity_logs")
+        .delete()
+        .eq("is_fake", true)
       if (error) throw error
     }
 

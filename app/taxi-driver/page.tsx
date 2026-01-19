@@ -1,4 +1,5 @@
 "use client"
+
 import { useState } from "react"
 import TaxiDriverRegister from "@/components/pages/TaxiDriverRegister"
 import TaxiDriverDashboard from "@/components/pages/TaxiDriverDashboard"
@@ -6,11 +7,16 @@ import Link from "next/link"
 import { ArrowLeft, Car } from "lucide-react"
 
 export default function TaxiDriverPage() {
-  const [loggedInDriver, setLoggedInDriver] = useState(null)
+  const [loggedInDriver, setLoggedInDriver] = useState<any | null>(null)
   const [showLogin, setShowLogin] = useState(false)
 
   if (loggedInDriver) {
-    return <TaxiDriverDashboard driver={loggedInDriver} onLogout={() => setLoggedInDriver(null)} />
+    return (
+      <TaxiDriverDashboard
+        driver={loggedInDriver}
+        onLogout={() => setLoggedInDriver(null)}
+      />
+    )
   }
 
   return (
@@ -41,14 +47,18 @@ export default function TaxiDriverPage() {
             <h1 className="text-3xl md:text-4xl font-extralight text-sky-900 mb-2">
               Portal de <span className="text-orange-600">taxistas</span>
             </h1>
-            <p className="text-sky-700 font-light">Regístrate o accede a tu cuenta para gestionar reservas</p>
+            <p className="text-sky-700 font-light">
+              Regístrate o accede a tu cuenta para gestionar reservas
+            </p>
           </div>
 
           <div className="flex md:hidden gap-2 mb-6">
             <button
               onClick={() => setShowLogin(false)}
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition ${
-                !showLogin ? "bg-orange-500 hover:bg-orange-600 text-white" : "bg-white/80 border-white text-sky-700"
+                !showLogin
+                  ? "bg-orange-500 hover:bg-orange-600 text-white"
+                  : "bg-white/80 border-white text-sky-700"
               }`}
             >
               Registrarse
@@ -56,7 +66,9 @@ export default function TaxiDriverPage() {
             <button
               onClick={() => setShowLogin(true)}
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition ${
-                showLogin ? "bg-orange-500 hover:bg-orange-600 text-white" : "bg-white/80 border-white text-sky-700"
+                showLogin
+                  ? "bg-orange-500 hover:bg-orange-600 text-white"
+                  : "bg-white/80 border-white text-sky-700"
               }`}
             >
               Iniciar sesión
@@ -64,11 +76,14 @@ export default function TaxiDriverPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-            <div className={`${showLogin ? "hidden md:block" : ""}`}>
+            <div className={showLogin ? "hidden md:block" : ""}>
               <TaxiDriverRegister onRegistered={() => setShowLogin(true)} />
             </div>
-            <div className={`${!showLogin ? "hidden md:block" : ""}`}>
-              <TaxiDriverDashboard onLogout={() => setLoggedInDriver(null)} onLogin={setLoggedInDriver} />
+            <div className={!showLogin ? "hidden md:block" : ""}>
+              <TaxiDriverDashboard
+                onLogout={() => setLoggedInDriver(null)}
+                onLogin={setLoggedInDriver}
+              />
             </div>
           </div>
         </div>

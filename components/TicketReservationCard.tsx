@@ -1,7 +1,8 @@
 "use client"
+
 import { Ticket, MapPin, Clock, Users, MessageSquare } from "lucide-react"
 
-interface Reservation {
+export interface Reservation {
   id: string
   name: string
   phone: string
@@ -16,7 +17,7 @@ interface Reservation {
   sku: string
   status: "active" | "cancelled" | "completed" | "accepted"
   acceptedBy?: string
-  is_fake?: boolean // Added is_fake field for marking random generated data
+  is_fake?: boolean
 }
 
 interface TicketReservationCardProps {
@@ -32,84 +33,42 @@ export default function TicketReservationCard({ reservation, status, driverName 
     return `${day}/${month}/${year}`
   }
 
-  const getStatusColor = (statusType: string): { bg: string; border: string; tag: string; text: string } => {
+  const getStatusColor = (statusType: string) => {
     switch (statusType) {
       case "aceptada":
-        return {
-          bg: "bg-green-50",
-          border: "border-green-200",
-          tag: "bg-green-500",
-          text: "text-green-900",
-        }
+        return { bg: "bg-green-50", border: "border-green-200", tag: "bg-green-500", text: "text-green-900" }
       case "pendiente":
-        return {
-          bg: "bg-yellow-50",
-          border: "border-yellow-200",
-          tag: "bg-yellow-600",
-          text: "text-yellow-900",
-        }
+        return { bg: "bg-yellow-50", border: "border-yellow-200", tag: "bg-yellow-600", text: "text-yellow-900" }
       case "cancelada":
-        return {
-          bg: "bg-red-50",
-          border: "border-red-200",
-          tag: "bg-red-500",
-          text: "text-red-900",
-        }
+        return { bg: "bg-red-50", border: "border-red-200", tag: "bg-red-500", text: "text-red-900" }
       case "expirada":
-        return {
-          bg: "bg-gray-50",
-          border: "border-gray-200",
-          tag: "bg-gray-600",
-          text: "text-gray-900",
-        }
+        return { bg: "bg-gray-50", border: "border-gray-200", tag: "bg-gray-600", text: "text-gray-900" }
       case "ficticio":
-        return {
-          bg: "bg-purple-50",
-          border: "border-purple-200",
-          tag: "bg-purple-500",
-          text: "text-purple-900",
-        }
+        return { bg: "bg-purple-50", border: "border-purple-200", tag: "bg-purple-500", text: "text-purple-900" }
       default:
-        return {
-          bg: "bg-sky-50",
-          border: "border-sky-200",
-          tag: "bg-sky-600",
-          text: "text-sky-900",
-        }
+        return { bg: "bg-sky-50", border: "border-sky-200", tag: "bg-sky-600", text: "text-sky-900" }
     }
   }
 
   const statusColor = getStatusColor(status)
 
-  // Determine which tags to show
+  // Determinar tags a mostrar
   const tags: string[] = []
 
-  if (reservation.is_fake) {
-    tags.push("ficticio")
-  }
-
-  if (reservation.status === "cancelled") {
-    tags.push("cancelada")
-  } else {
+  if (reservation.is_fake) tags.push("ficticio")
+  if (reservation.status === "cancelled") tags.push("cancelada")
+  else {
     const now = new Date()
     const pickupDateTime = new Date(`${reservation.pickupDate}T${reservation.pickupTime || "00:00"}`)
 
-    if (pickupDateTime < now) {
-      tags.push("expirada")
-    }
-
-    if (reservation.acceptedBy) {
-      tags.push("aceptada")
-    } else {
-      tags.push("pendiente")
-    }
+    if (pickupDateTime < now) tags.push("expirada")
+    if (reservation.acceptedBy) tags.push("aceptada")
+    else tags.push("pendiente")
   }
 
   return (
-    <div
-      className={`${statusColor.bg} border-2 ${statusColor.border} rounded-xl p-6 shadow-lg hover:shadow-xl transition`}
-    >
-      {/* Header: SKU and Tags */}
+    <div className={`${statusColor.bg} border-2 ${statusColor.border} rounded-xl p-6 shadow-lg hover:shadow-xl transition`}>
+      {/* Header: SKU y Tags */}
       <div className="flex justify-between items-start mb-4 pb-4 border-b-2 border-opacity-30 border-current">
         <div className="flex items-center gap-3">
           <Ticket className={`w-6 h-6 ${statusColor.text}`} />
@@ -122,7 +81,10 @@ export default function TicketReservationCard({ reservation, status, driverName 
           {tags.map((tag) => {
             const tagColor = getStatusColor(tag)
             return (
-              <span key={tag} className={`${tagColor.tag} text-white text-xs font-semibold px-3 py-1 rounded-full`}>
+              <span
+                key={tag}
+                className={`${tagColor.tag} text-white text-xs font-semibold px-3 py-1 rounded-full`}
+              >
                 {tag.charAt(0).toUpperCase() + tag.slice(1)}
               </span>
             )
@@ -130,14 +92,14 @@ export default function TicketReservationCard({ reservation, status, driverName 
         </div>
       </div>
 
-      {/* Client Info */}
+      {/* Cliente */}
       <div className="mb-4">
         <p className={`text-sm font-semibold ${statusColor.text} opacity-70 mb-1`}>CLIENTE</p>
         <p className={`text-xl font-bold ${statusColor.text}`}>{reservation.name}</p>
         <p className={`text-sm ${statusColor.text} opacity-70`}>📞 {reservation.phone}</p>
       </div>
 
-      {/* Driver Info (if accepted) */}
+      {/* Taxista asignado */}
       {driverName && (
         <div className="mb-4 p-3 bg-white bg-opacity-50 rounded-lg">
           <p className={`text-xs font-semibold ${statusColor.text} opacity-70 mb-1`}>TAXISTA ASIGNADO</p>
@@ -145,39 +107,35 @@ export default function TicketReservationCard({ reservation, status, driverName 
         </div>
       )}
 
-      {/* Pickup Details */}
+      {/* Detalles de recogida */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <p className={`text-xs font-semibold ${statusColor.text} opacity-70 mb-1 flex items-center gap-1`}>
-            <Clock className="w-3 h-3" />
-            RECOGIDA
+            <Clock className="w-3 h-3" /> RECOGIDA
           </p>
           <p className={`font-bold ${statusColor.text}`}>{formatDateDDMMYYYY(reservation.pickupDate)}</p>
           <p className={`text-sm ${statusColor.text} opacity-70`}>{reservation.pickupTime}</p>
         </div>
         <div>
           <p className={`text-xs font-semibold ${statusColor.text} opacity-70 mb-1 flex items-center gap-1`}>
-            <MapPin className="w-3 h-3" />
-            UBICACIÓN
+            <MapPin className="w-3 h-3" /> UBICACIÓN
           </p>
           <p className={`text-sm font-medium ${statusColor.text}`}>{reservation.pickupLocation}</p>
         </div>
       </div>
 
-      {/* Destination */}
+      {/* Destino */}
       <div className="mb-4">
         <p className={`text-xs font-semibold ${statusColor.text} opacity-70 mb-1 flex items-center gap-1`}>
-          <MapPin className="w-3 h-3" />
-          DESTINO
+          <MapPin className="w-3 h-3" /> DESTINO
         </p>
         <p className={`text-sm font-medium ${statusColor.text}`}>{reservation.destination}</p>
       </div>
 
-      {/* Passengers */}
+      {/* Pasajeros */}
       <div className="mb-4 p-3 bg-white bg-opacity-50 rounded-lg">
         <p className={`text-xs font-semibold ${statusColor.text} opacity-70 mb-2 flex items-center gap-1`}>
-          <Users className="w-3 h-3" />
-          PASAJEROS
+          <Users className="w-3 h-3" /> PASAJEROS
         </p>
         <div className="grid grid-cols-3 gap-2">
           <div>
@@ -195,12 +153,11 @@ export default function TicketReservationCard({ reservation, status, driverName 
         </div>
       </div>
 
-      {/* Special Observations */}
+      {/* Observaciones especiales */}
       {reservation.observations && (
         <div className="p-3 bg-white bg-opacity-50 rounded-lg border border-current border-opacity-20">
           <p className={`text-xs font-semibold ${statusColor.text} opacity-70 mb-2 flex items-center gap-1`}>
-            <MessageSquare className="w-3 h-3" />
-            OBSERVACIONES ESPECIALES
+            <MessageSquare className="w-3 h-3" /> OBSERVACIONES ESPECIALES
           </p>
           <p className={`text-sm ${statusColor.text} italic`}>{reservation.observations}</p>
         </div>

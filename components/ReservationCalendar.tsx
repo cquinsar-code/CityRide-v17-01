@@ -4,7 +4,7 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react"
 import "react-calendar/dist/Calendar.css"
 
-interface Reservation {
+export interface Reservation {
   id: string
   pickupDate: string
   acceptedBy?: string | null
@@ -28,45 +28,44 @@ export default function ReservationCalendar({
 }: ReservationCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
+  // Filtrar reservas para un día específico
   const getReservationsForDay = (day: number, month: Date): Reservation[] => {
     return reservations.filter((res) => {
       const resDate = new Date(res.pickupDate)
-      const hasDriver = !filterByDriver || res.acceptedBy === filterByDriver
+      const matchesDriver = !filterByDriver || res.acceptedBy === filterByDriver
       return (
         resDate.getDate() === day &&
         resDate.getMonth() === month.getMonth() &&
         resDate.getFullYear() === month.getFullYear() &&
-        hasDriver
+        matchesDriver
       )
     })
   }
 
+  // Obtener días del mes que tienen reservas
   const getDaysWithReservations = (): number[] => {
     const days = new Set<number>()
     reservations.forEach((res) => {
       const resDate = new Date(res.pickupDate)
-      if (resDate.getMonth() === currentMonth.getMonth() && resDate.getFullYear() === currentMonth.getFullYear()) {
-        const hasDriver = !filterByDriver || res.acceptedBy === filterByDriver
-        if (hasDriver) {
-          days.add(resDate.getDate())
-        }
+      if (
+        resDate.getMonth() === currentMonth.getMonth() &&
+        resDate.getFullYear() === currentMonth.getFullYear()
+      ) {
+        const matchesDriver = !filterByDriver || res.acceptedBy === filterByDriver
+        if (matchesDriver) days.add(resDate.getDate())
       }
     })
     return Array.from(days)
   }
 
   const daysWithReservations = getDaysWithReservations()
+
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
   const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay()
   const mondayFirst = (firstDay + 6) % 7 // Convert Sunday=0 to Monday=0
 
-  const previousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
-  }
-
-  const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
-  }
+  const previousMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
 
   const handleDayClick = (day: number) => {
     if (getReservationsForDay(day, currentMonth).length > 0) {
@@ -77,15 +76,12 @@ export default function ReservationCalendar({
   const monthYear = currentMonth.toLocaleString("es-ES", { month: "long", year: "numeric" })
 
   const calendarDays: (number | null)[] = []
-  for (let i = 0; i < mondayFirst; i++) {
-    calendarDays.push(null)
-  }
-  for (let day = 1; day <= daysInMonth; day++) {
-    calendarDays.push(day)
-  }
+  for (let i = 0; i < mondayFirst; i++) calendarDays.push(null)
+  for (let day = 1; day <= daysInMonth; day++) calendarDays.push(day)
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
@@ -98,7 +94,9 @@ export default function ReservationCalendar({
         <div className="w-24"></div>
       </div>
 
+      {/* Calendar */}
       <div className="bg-white rounded-lg border border-sky-200 p-6">
+        {/* Month Navigation */}
         <div className="flex items-center justify-between mb-6">
           <button onClick={previousMonth} className="p-2 hover:bg-sky-100 rounded-lg transition">
             <ChevronLeft className="w-5 h-5 text-sky-600" />
@@ -109,7 +107,7 @@ export default function ReservationCalendar({
           </button>
         </div>
 
-        {/* Calendar Grid */}
+        {/* Days Header */}
         <div className="grid grid-cols-7 gap-2 mb-4">
           {["L", "M", "X", "J", "V", "S", "D"].map((day) => (
             <div key={day} className="text-center font-semibold text-sky-700 py-2">
@@ -117,17 +115,20 @@ export default function ReservationCalendar({
             </div>
           ))}
 
+          {/* Calendar Days */}
           {calendarDays.map((day, index) => (
             <div key={index} className="aspect-square flex flex-col items-center justify-center relative">
               {day ? (
                 <button
                   onClick={() => handleDayClick(day)}
                   disabled={!daysWithReservations.includes(day)}
-                  className={`w-full h-full flex flex-col items-center justify-center rounded-lg relative transition ${
-                    daysWithReservations.includes(day)
-                      ? "bg-orange-100 hover:bg-orange-200 cursor-pointer"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  }`}
+                  className={`w-full h-full flex flex-col items-center justify-center rounded-lg relative transition
+                    ${
+                      daysWithReservations.includes(day)
+                        ? "bg-orange-100 hover:bg-orange-200 cursor-pointer"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }
+                  `}
                 >
                   <span className="font-semibold text-sm">{day}</span>
                   {daysWithReservations.includes(day) && (

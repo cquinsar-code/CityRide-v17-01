@@ -14,9 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid island" }, { status: 400 })
   }
 
-  const coords = ISLANDS_COORDS[island as keyof typeof ISLANDS_COORDS]
   const apiKey = process.env.GEOAPIFY_API_KEY
-
   if (!apiKey) {
     return NextResponse.json({ error: "Missing API key" }, { status: 500 })
   }
@@ -47,13 +45,32 @@ export async function GET(request: NextRequest) {
         "Güímar",
         "Arafo",
       ],
-      Fuerteventura: ["Puerto del Rosario", "Corralejo", "Pajara", "Morro Jable", "La Oliva", "Betancuria", "Tuineje"],
-      Lanzarote: ["Arrecife", "San Bartolomé", "Tinajo", "Haría", "Yaiza", "Femés", "Mozaga"],
+      Fuerteventura: [
+        "Puerto del Rosario",
+        "Corralejo",
+        "Pajara",
+        "Morro Jable",
+        "La Oliva",
+        "Betancuria",
+        "Tuineje",
+      ],
+      Lanzarote: [
+        "Arrecife",
+        "San Bartolomé",
+        "Tinajo",
+        "Haría",
+        "Yaiza",
+        "Femés",
+        "Mozaga",
+      ],
     }
 
     const municipalitiesList = municipalities[island] || []
     return NextResponse.json({ municipalities: municipalitiesList })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch municipalities" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to fetch municipalities" },
+      { status: 500 }
+    )
   }
 }

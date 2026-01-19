@@ -1,5 +1,6 @@
 "use client"
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+
+import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 
 export interface AuthUser {
   id: string
@@ -27,16 +28,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+interface AuthProviderProps {
+  children: ReactNode
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Carga inicial del usuario desde localStorage
   useEffect(() => {
-    const storedUser = localStorage.getItem("cityride_user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("cityride_user")
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (err) {
+          console.error("Error parsing stored user:", err)
+          localStorage.removeItem("cityride_user")
+        }
+      }
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   const login = async (email: string, password: string) => {
@@ -48,21 +61,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Login failed")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Login failed")
       }
 
-      const userData = await response.json()
+      const userData: AuthUser = await response.json()
       setUser(userData)
       localStorage.setItem("cityride_user", JSON.stringify(userData))
-    } catch (error) {
-      throw error
+    } catch (err) {
+      console.error("Login error:", err)
+      throw err
     }
   }
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem("cityride_user")
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cityride_user")
+    }
   }
 
   return (
@@ -80,10 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useAuth() {
+// Hook personalizado para consumir el contexto
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
   if (!context) {
-    throw new Error("useAuth must be used within AuthProvider")
+    throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }

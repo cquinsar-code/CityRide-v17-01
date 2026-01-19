@@ -1,16 +1,19 @@
-import { createBrowserClient } from "@supabase/ssr"
-import { createServerClient } from "@supabase/ssr"
+// \lib\supabase.ts
+
+import { createBrowserClient, createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+// --- Cliente para el navegador ---
 export function createClient() {
   return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
-export async function createServerClientComponent() {
-  const cookieStore = await cookies()
+// --- Cliente para componentes server-side ---
+export async function createServerSupabaseClient() {
+  const cookieStore = cookies()
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -19,8 +22,12 @@ export async function createServerClientComponent() {
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-        } catch {}
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        } catch (error) {
+          console.error("Error setting Supabase cookies:", error)
+        }
       },
     },
   })

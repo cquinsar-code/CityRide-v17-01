@@ -18,15 +18,17 @@ export default function CompactCalendar({
   minDate,
   maxDate,
 }: CompactCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState<Date>(
+    selectedDate ? new Date(selectedDate) : new Date()
+  )
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   }
 
   const getFirstDayOfMonth = (date: Date) => {
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay()
-    return firstDay === 0 ? 6 : firstDay - 1 // Convert Sunday=0 to Monday=0
+    const day = new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+    return day === 0 ? 6 : day - 1 // Convert Sunday=0 to Monday=0
   }
 
   const isDateHighlighted = (day: number) => {
@@ -35,7 +37,7 @@ export default function CompactCalendar({
       (d) =>
         d.getDate() === checkDate.getDate() &&
         d.getMonth() === checkDate.getMonth() &&
-        d.getFullYear() === checkDate.getFullYear(),
+        d.getFullYear() === checkDate.getFullYear()
     )
   }
 
@@ -48,7 +50,15 @@ export default function CompactCalendar({
     )
   }
 
+  const isDateDisabled = (day: number) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+    if (minDate && date < minDate) return true
+    if (maxDate && date > maxDate) return true
+    return false
+  }
+
   const handleDateClick = (day: number) => {
+    if (isDateDisabled(day)) return
     const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
     onDateSelect(newDate)
   }
@@ -63,17 +73,10 @@ export default function CompactCalendar({
 
   const daysInMonth = getDaysInMonth(currentMonth)
   const firstDay = getFirstDayOfMonth(currentMonth)
-  const days = []
+  const days: (number | null)[] = []
 
-  // Empty cells for days before month starts
-  for (let i = 0; i < firstDay; i++) {
-    days.push(null)
-  }
-
-  // Days of the month
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push(i)
-  }
+  for (let i = 0; i < firstDay; i++) days.push(null)
+  for (let i = 1; i <= daysInMonth; i++) days.push(i)
 
   const monthNames = [
     "Enero",
@@ -90,19 +93,27 @@ export default function CompactCalendar({
     "Diciembre",
   ]
 
-  const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sab", "Dom"]
+  const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
   return (
     <div className="w-full max-w-xs mx-auto p-3 bg-white rounded-lg shadow-md">
-      {/* Header with month navigation */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded" aria-label="Mes anterior">
+        <button
+          onClick={handlePrevMonth}
+          className="p-1 hover:bg-gray-100 rounded"
+          aria-label="Mes anterior"
+        >
           <ChevronLeft size={18} />
         </button>
         <h3 className="text-sm font-semibold text-gray-800">
           {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </h3>
-        <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded" aria-label="Próximo mes">
+        <button
+          onClick={handleNextMonth}
+          className="p-1 hover:bg-gray-100 rounded"
+          aria-label="Próximo mes"
+        >
           <ChevronRight size={18} />
         </button>
       </div>
@@ -118,21 +129,21 @@ export default function CompactCalendar({
 
       {/* Calendar days */}
       <div className="grid grid-cols-7 gap-1">
-        {days.map((day, index) => (
-          <div key={index} className="aspect-square flex flex-col items-center justify-center">
+        {days.map((day, idx) => (
+          <div key={idx} className="aspect-square flex items-center justify-center">
             {day ? (
               <button
                 onClick={() => handleDateClick(day)}
-                className={`w-full h-full flex flex-col items-center justify-center rounded text-xs font-medium transition-colors relative ${
-                  isDateSelected(day)
-                    ? "bg-sky-500 text-white"
-                    : isDateHighlighted(day)
-                      ? "bg-sky-50 text-sky-900 hover:bg-sky-100"
-                      : "text-gray-700 hover:bg-gray-100"
-                }`}
+                disabled={isDateDisabled(day)}
+                className={`w-full h-full flex items-center justify-center rounded text-xs font-medium transition-colors relative
+                  ${isDateSelected(day) ? "bg-sky-500 text-white" :
+                  isDateHighlighted(day) ? "bg-sky-50 text-sky-900 hover:bg-sky-100" :
+                  "text-gray-700 hover:bg-gray-100"}
+                  ${isDateDisabled(day) ? "opacity-50 cursor-not-allowed" : ""}
+                `}
               >
                 <span>{day}</span>
-                {isDateHighlighted(day) && (
+                {isDateHighlighted(day) && !isDateSelected(day) && (
                   <span className="w-1 h-1 bg-green-500 rounded-full absolute bottom-0.5"></span>
                 )}
               </button>

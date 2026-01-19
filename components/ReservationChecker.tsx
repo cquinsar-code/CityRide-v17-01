@@ -1,4 +1,5 @@
 "use client"
+
 import { useState } from "react"
 import { useLanguage } from "@/context/LanguageContext"
 import { CheckCircle, Clock, MapIcon, AlertCircle } from "lucide-react"
@@ -6,7 +7,7 @@ import dynamic from "next/dynamic"
 
 const MapRouteViewer = dynamic(() => import("./MapRouteViewer"), { ssr: false })
 
-interface Reservation {
+export interface Reservation {
   id: string
   name: string
   phone: string
@@ -26,7 +27,7 @@ interface Reservation {
   acceptedAt?: string
 }
 
-interface DriverInfo {
+export interface DriverInfo {
   name: string
   phone: string
   license: string
@@ -37,26 +38,31 @@ interface DriverInfo {
   pmrAdapted: boolean
 }
 
-interface DirectionsInfo {
+export interface DirectionsInfo {
   time: number
   distance: number
 }
 
 export default function ReservationChecker() {
   const { t } = useLanguage()
+
+  // Estados principales
   const [phone, setPhone] = useState("")
-  const [showCancelForm, setShowCancelForm] = useState(false)
-  const [cancelPhone, setCancelPhone] = useState("")
-  const [cancelMessage, setCancelMessage] = useState("")
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null)
   const [directionsInfo, setDirectionsInfo] = useState<DirectionsInfo | null>(null)
   const [loadingDirections, setLoadingDirections] = useState(false)
   const [driverCoordinates, setDriverCoordinates] = useState<{ lat: number; lon: number } | null>(null)
   const [clientCoordinates, setClientCoordinates] = useState<{ lat: number; lon: number } | null>(null)
+
+  // Cancelación de reservas
+  const [showCancelForm, setShowCancelForm] = useState(false)
+  const [cancelPhone, setCancelPhone] = useState("")
   const [cancelReservations, setCancelReservations] = useState<Reservation[]>([])
   const [showCancelList, setShowCancelList] = useState(false)
+  const [cancelMessage, setCancelMessage] = useState("")
 
+  // Obtener direcciones de ruta
   const fetchDirections = async (pickupLocation: string, destination: string): Promise<DirectionsInfo | null> => {
     try {
       const response = await fetch("/api/directions", {
@@ -65,10 +71,7 @@ export default function ReservationChecker() {
         body: JSON.stringify({ pickupLocation, destination }),
       })
 
-      if (!response.ok) {
-        console.log("[v0] Error fetching directions:", response.statusText)
-        return null
-      }
+      if (!response.ok) return null
 
       const data = await response.json()
 
@@ -77,111 +80,108 @@ export default function ReservationChecker() {
         setClientCoordinates(data.clientCoordinates)
       }
 
-      return {
-        time: data.time,
-        distance: data.distance,
-      }
+      return { time: data.time, distance: data.distance }
     } catch (error) {
-      console.log("[v0] Error fetching directions:", error)
+      console.error("Error fetching directions:", error)
       return null
     }
   }
 
+  // Comprobar reserva por teléfono
   const checkReservation = async () => {
-    const stored = JSON.parse(localStorage.getItem("reservations") || "[]")
+    const stored: Reservation[] = JSON.parse(localStorage.getItem("reservations") || "[]")
     const drivers = JSON.parse(localStorage.getItem("taxi_drivers") || "[]")
 
-    const userReservations = stored.filter((r: Reservation) => r.phone === phone && r.status === "active")
+    const userReservations = stored.filter((r) => r.phone === phone && r.status === "active")
+    if (userReservations.length === 0) {
+      alert(t("check.no_driver"))
+      clearReservationState()
+      return
+    }
 
-    if (userReservations.length > 0) {
-      const now = new Date()
-      const validReservation = userReservations.find((r: Reservation) => {
-        const pickupDateTime = new Date(`${r.pickupDate}T${r.pickupTime}`)
-        const diffMinutes = (pickupDateTime.getTime() - now.getTime()) / 60000
-        return diffMinutes > 0 && diffMinutes <= 60
-      })
+    const now = new Date()
+    const validReservation = userReservations.find((r) => {
+      const pickupDateTime = new Date(`${r.pickupDate}T${r.pickupTime}`)
+      const diffMinutes = (pickupDateTime.getTime() - now.getTime()) / 60000
+      return diffMinutes > 0 && diffMinutes <= 60
+    })
 
-      if (validReservation) {
-        setSelectedReservation(validReservation)
+    if (!validReservation) {
+      alert(t("check.outside_time"))
+      clearReservationState()
+      return
+    }
 
-        if (validReservation.acceptedBy) {
-          const driver = drivers.find((d: any) => d.username === validReservation.acceptedBy)
-          if (driver) {
-            setDriverInfo({
-              name: driver.name,
-              phone: driver.phone,
-              license: driver.license,
-              municipality: driver.municipality,
-              vehicleModel: driver.vehicleModel,
-              vehiclePlate: driver.vehiclePlate,
-              seats: driver.seats,
-              pmrAdapted: driver.pmrAdapted,
-            })
+    setSelectedReservation(validReservation)
 
-            setLoadingDirections(true)
-            const directions = await fetchDirections(validReservation.pickupLocation, validReservation.destination)
-            setDirectionsInfo(directions)
-            setLoadingDirections(false)
-          }
-        } else {
-          setDriverInfo(null)
-          setDirectionsInfo(null)
-        }
-      } else {
-        alert(t("check.outside_time"))
-        setSelectedReservation(null)
-        setDriverInfo(null)
-        setDirectionsInfo(null)
+    if (validReservation.acceptedBy) {
+      const driver = drivers.find((d: any) => d.username === validReservation.acceptedBy)
+      if (driver) {
+        setDriverInfo({
+          name: driver.name,
+          phone: driver.phone,
+          license: driver.license,
+          municipality: driver.municipality,
+          vehicleModel: driver.vehicleModel,
+          vehiclePlate: driver.vehiclePlate,
+          seats: driver.seats,
+          pmrAdapted: driver.pmrAdapted,
+        })
+
+        setLoadingDirections(true)
+        const directions = await fetchDirections(validReservation.pickupLocation, validReservation.destination)
+        setDirectionsInfo(directions)
+        setLoadingDirections(false)
       }
     } else {
-      alert(t("check.no_driver"))
-      setSelectedReservation(null)
       setDriverInfo(null)
       setDirectionsInfo(null)
     }
   }
 
+  const clearReservationState = () => {
+    setSelectedReservation(null)
+    setDriverInfo(null)
+    setDirectionsInfo(null)
+    setDriverCoordinates(null)
+    setClientCoordinates(null)
+  }
+
+  // Buscar reservas para cancelar
   const fetchCancelReservations = () => {
     if (!cancelPhone.trim()) {
       alert("Please enter a phone number")
       return
     }
 
-    const stored = JSON.parse(localStorage.getItem("reservations") || "[]")
+    const stored: Reservation[] = JSON.parse(localStorage.getItem("reservations") || "[]")
     const userReservations = stored
-      .filter((r: Reservation) => r.phone === cancelPhone && r.status === "active")
-      .sort((a: Reservation, b: Reservation) => {
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      })
+      .filter((r) => r.phone === cancelPhone && r.status === "active")
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
     setCancelReservations(userReservations)
     setShowCancelList(true)
   }
 
   const handleCancelSpecificReservation = (reservationId: string) => {
-    const stored = JSON.parse(localStorage.getItem("reservations") || "[]")
-    const updatedReservations = stored.map((r: Reservation) => {
-      if (r.id === reservationId) {
-        return { ...r, status: "cancelled" }
-      }
-      return r
-    })
+    const stored: Reservation[] = JSON.parse(localStorage.getItem("reservations") || "[]")
+    const updatedReservations = stored.map((r) =>
+      r.id === reservationId ? { ...r, status: "cancelled" } : r
+    )
 
     localStorage.setItem("reservations", JSON.stringify(updatedReservations))
     setCancelReservations(cancelReservations.filter((r) => r.id !== reservationId))
     setCancelMessage("success")
 
     const logs = JSON.parse(localStorage.getItem("admin_logs") || "[]")
-    const dateStr = new Date().toLocaleDateString("es-ES")
-    const timeStr = new Date().toLocaleTimeString("es-ES")
-
+    const now = new Date()
     logs.push({
       id: Math.random().toString(36).substr(2, 9),
       type: "reservation_cancelled",
       phone: cancelPhone,
-      reservationSku: updatedReservations.find((r: Reservation) => r.id === reservationId)?.sku,
-      timestamp: new Date().toISOString(),
-      message: `La reserva ha sido cancelada el ${dateStr} a las ${timeStr}`,
+      reservationSku: updatedReservations.find((r) => r.id === reservationId)?.sku,
+      timestamp: now.toISOString(),
+      message: `La reserva ha sido cancelada el ${now.toLocaleDateString("es-ES")} a las ${now.toLocaleTimeString("es-ES")}`,
     })
     localStorage.setItem("admin_logs", JSON.stringify(logs))
   }
@@ -192,13 +192,10 @@ export default function ReservationChecker() {
       return
     }
 
-    const stored = JSON.parse(localStorage.getItem("reservations") || "[]")
-    const updatedReservations = stored.map((r: Reservation) => {
-      if (r.phone === cancelPhone && r.status === "active") {
-        return { ...r, status: "cancelled" }
-      }
-      return r
-    })
+    const stored: Reservation[] = JSON.parse(localStorage.getItem("reservations") || "[]")
+    const updatedReservations = stored.map((r) =>
+      r.phone === cancelPhone && r.status === "active" ? { ...r, status: "cancelled" } : r
+    )
 
     localStorage.setItem("reservations", JSON.stringify(updatedReservations))
     setCancelMessage("success")
@@ -211,6 +208,7 @@ export default function ReservationChecker() {
 
   return (
     <div className="space-y-4">
+      {/* Check reservation section */}
       <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6">
         <h3 className="text-lg font-semibold text-sky-900 mb-4">{t("check.title")}</h3>
         <p className="text-sm text-sky-600 mb-4">{t("check.description")}</p>
@@ -230,6 +228,7 @@ export default function ReservationChecker() {
           </button>
         </div>
 
+        {/* Driver info & route */}
         {selectedReservation && driverInfo && (
           <div className="mt-6 space-y-4 border-t border-sky-200 pt-4">
             <h4 className="font-semibold text-sky-900">Información del Taxista</h4>
@@ -246,51 +245,21 @@ export default function ReservationChecker() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="p-3 bg-sky-50 rounded-lg">
-                <p className="text-xs text-sky-600 font-medium">{t("driver.name")}</p>
-                <p className="text-sky-900 font-semibold">{driverInfo.name}</p>
-              </div>
-              <div className="p-3 bg-sky-50 rounded-lg">
-                <p className="text-xs text-sky-600 font-medium">{t("driver.phone")}</p>
-                <p className="text-sky-900 font-semibold">{driverInfo.phone}</p>
-              </div>
-              <div className="p-3 bg-sky-50 rounded-lg">
-                <p className="text-xs text-sky-600 font-medium">{t("driver.vehicle_model")}</p>
-                <p className="text-sky-900 font-semibold">{driverInfo.vehicleModel}</p>
-              </div>
-              <div className="p-3 bg-sky-50 rounded-lg">
-                <p className="text-xs text-sky-600 font-medium">{t("driver.vehicle_plate")}</p>
-                <p className="text-sky-900 font-semibold">{driverInfo.vehiclePlate}</p>
-              </div>
+              <InfoCard label={t("driver.name")} value={driverInfo.name} />
+              <InfoCard label={t("driver.phone")} value={driverInfo.phone} />
+              <InfoCard label={t("driver.vehicle_model")} value={driverInfo.vehicleModel} />
+              <InfoCard label={t("driver.vehicle_plate")} value={driverInfo.vehiclePlate} />
             </div>
 
             {loadingDirections ? (
-              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-center">
-                <p className="text-orange-700 text-sm">Calculando tiempo estimado...</p>
-              </div>
+              <LoadingDirections />
             ) : directionsInfo ? (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Clock className="w-4 h-4 text-orange-600" />
-                    <p className="text-xs text-orange-700 font-medium">Tiempo estimado</p>
-                  </div>
-                  <p className="text-2xl font-bold text-orange-900">{directionsInfo.time}</p>
-                  <p className="text-xs text-orange-700">minutos</p>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-sky-50 to-sky-100 border border-sky-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-1">
-                    <MapIcon className="w-4 h-4 text-sky-600" />
-                    <p className="text-xs text-sky-700 font-medium">Distancia</p>
-                  </div>
-                  <p className="text-2xl font-bold text-sky-900">{directionsInfo.distance}</p>
-                  <p className="text-xs text-sky-700">km</p>
-                </div>
-              </div>
+              <DirectionsInfoDisplay directionsInfo={directionsInfo} />
             ) : null}
           </div>
         )}
 
+        {/* No driver assigned */}
         {selectedReservation && !driverInfo && (
           <div className="mt-6 flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -299,6 +268,7 @@ export default function ReservationChecker() {
         )}
       </div>
 
+      {/* Cancel reservation section */}
       <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6">
         <button
           onClick={() => setShowCancelForm(!showCancelForm)}
@@ -307,6 +277,7 @@ export default function ReservationChecker() {
           <span>{t("cancel.title")}</span>
           <span className="text-2xl">{showCancelForm ? "−" : "+"}</span>
         </button>
+
         {showCancelForm && (
           <div className="mt-4 space-y-3">
             {cancelMessage === "success" && (
@@ -315,6 +286,7 @@ export default function ReservationChecker() {
                 <p className="text-green-700 text-sm">{t("cancel.success")}</p>
               </div>
             )}
+
             <div className="flex gap-2">
               <input
                 type="tel"
@@ -368,3 +340,38 @@ export default function ReservationChecker() {
     </div>
   )
 }
+
+// Componentes auxiliares
+const InfoCard = ({ label, value }: { label: string; value: string | number }) => (
+  <div className="p-3 bg-sky-50 rounded-lg">
+    <p className="text-xs text-sky-600 font-medium">{label}</p>
+    <p className="text-sky-900 font-semibold">{value}</p>
+  </div>
+)
+
+const LoadingDirections = () => (
+  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-center">
+    <p className="text-orange-700 text-sm">Calculando tiempo estimado...</p>
+  </div>
+)
+
+const DirectionsInfoDisplay = ({ directionsInfo }: { directionsInfo: DirectionsInfo }) => (
+  <div className="grid grid-cols-2 gap-3">
+    <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg">
+      <div className="flex items-center gap-2 mb-1">
+        <Clock className="w-4 h-4 text-orange-600" />
+        <p className="text-xs text-orange-700 font-medium">Tiempo estimado</p>
+      </div>
+      <p className="text-2xl font-bold text-orange-900">{directionsInfo.time}</p>
+      <p className="text-xs text-orange-700">minutos</p>
+    </div>
+    <div className="p-4 bg-gradient-to-br from-sky-50 to-sky-100 border border-sky-200 rounded-lg">
+      <div className="flex items-center gap-2 mb-1">
+        <MapIcon className="w-4 h-4 text-sky-600" />
+        <p className="text-xs text-sky-700 font-medium">Distancia</p>
+      </div>
+      <p className="text-2xl font-bold text-sky-900">{directionsInfo.distance}</p>
+      <p className="text-xs text-sky-700">km</p>
+    </div>
+  </div>
+)

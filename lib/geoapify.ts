@@ -1,17 +1,24 @@
-// This file only provides fetch wrappers to API routes
-// All Geoapify API calls are handled server-side in API routes
+// \lib\geoapify.ts
+// Este archivo proporciona wrappers para llamadas a rutas API
+// Todas las llamadas reales a Geoapify se manejan en el servidor (API routes)
 
-interface ReverseGeocodeResult {
+export interface ReverseGeocodeResult {
   address: string
   formatted: string
 }
 
-interface DirectionsResult {
-  distance: number
-  time: number
+export interface DirectionsResult {
+  distance: number // en metros
+  time: number // en segundos
   waypoints: Array<{ lat: number; lon: number }>
 }
 
+/**
+ * Obtiene la dirección formateada a partir de coordenadas lat/lon
+ * @param lat Latitud
+ * @param lon Longitud
+ * @returns Objeto con address y formatted
+ */
 export async function reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeResult> {
   try {
     const response = await fetch("/api/geolocation/reverse-geocode", {
@@ -21,13 +28,21 @@ export async function reverseGeocode(lat: number, lon: number): Promise<ReverseG
     })
 
     if (!response.ok) throw new Error("Failed to reverse geocode")
-    return await response.json()
+    return (await response.json()) as ReverseGeocodeResult
   } catch (error) {
-    console.error("Error en reverse geocoding:", error)
+    console.error("Error en reverseGeocode:", error)
     return { address: "Error al obtener ubicación", formatted: "Error al obtener ubicación" }
   }
 }
 
+/**
+ * Obtiene la ruta y distancia entre dos puntos
+ * @param startLat Latitud de inicio
+ * @param startLon Longitud de inicio
+ * @param endLat Latitud de destino
+ * @param endLon Longitud de destino
+ * @returns Objeto con distance, time y waypoints
+ */
 export async function getDirections(
   startLat: number,
   startLon: number,
@@ -42,25 +57,32 @@ export async function getDirections(
     })
 
     if (!response.ok) throw new Error("Failed to get directions")
-    return await response.json()
+    return (await response.json()) as DirectionsResult
   } catch (error) {
-    console.error("Error en directions API:", error)
+    console.error("Error en getDirections:", error)
     return { distance: 0, time: 0, waypoints: [] }
   }
 }
 
+/**
+ * Genera waypoints intermedios a partir de un array de waypoints
+ * útil para simulaciones o animaciones de ruta
+ * @param waypoints Array de coordenadas {lat, lon}
+ * @param count Cantidad de waypoints intermedios a generar
+ * @returns Array de waypoints intermedios
+ */
 export function generateIntermediateWaypoints(
   waypoints: Array<{ lat: number; lon: number }>,
   count = 10,
 ): Array<{ lat: number; lon: number }> {
-  if (waypoints.length < 2) return waypoints
+  if (waypoints.length < 2 || count <= 0) return []
 
   const intermediate: Array<{ lat: number; lon: number }> = []
-  const step = Math.floor(waypoints.length / (count + 1))
+  const step = Math.floor((waypoints.length - 1) / (count + 1))
 
   for (let i = 0; i < count; i++) {
     const index = (i + 1) * step
-    if (index < waypoints.length) {
+    if (index < waypoints.length - 1) {
       intermediate.push(waypoints[index])
     }
   }

@@ -1,4 +1,5 @@
 "use client"
+
 import { LanguageProvider } from "@/context/LanguageContext"
 import HomePage from "@/components/pages/HomePage"
 import { useEffect } from "react"

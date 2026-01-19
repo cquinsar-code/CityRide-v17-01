@@ -1,15 +1,19 @@
-export const granCanariaAddresses = {
+// \lib\granCanariaAddresses.ts
+
+export interface Address {
+  street: string
+  number: string
+  postalCode: string
+  municipality: string
+}
+
+export const granCanariaAddresses: Record<string, Address[]> = {
   "Las Palmas de Gran Canaria": [
     { street: "Avenida Marítima", number: "1", postalCode: "35007", municipality: "Las Palmas de Gran Canaria" },
     { street: "Calle Vegueta", number: "15", postalCode: "35001", municipality: "Las Palmas de Gran Canaria" },
     { street: "Paseo Las Canteras", number: "42", postalCode: "35007", municipality: "Las Palmas de Gran Canaria" },
     { street: "Calle Mayor de Triana", number: "88", postalCode: "35003", municipality: "Las Palmas de Gran Canaria" },
-    {
-      street: "Avenida José Mesa y López",
-      number: "23",
-      postalCode: "35003",
-      municipality: "Las Palmas de Gran Canaria",
-    },
+    { street: "Avenida José Mesa y López", number: "23", postalCode: "35003", municipality: "Las Palmas de Gran Canaria" },
   ],
   Maspalomas: [
     { street: "Avenida de Tirajana", number: "1", postalCode: "35100", municipality: "Maspalomas" },
@@ -62,11 +66,18 @@ export const granCanariaAddresses = {
   ],
 }
 
-export function getRandomAddress(municipality: string) {
+/**
+ * Devuelve una dirección aleatoria de un municipio.
+ * Si no hay direcciones definidas, devuelve una por defecto.
+ * @param municipality Municipio
+ * @returns Dirección completa como string
+ */
+export function getRandomAddress(municipality: string): string {
   const addresses = granCanariaAddresses[municipality as keyof typeof granCanariaAddresses]
   if (!addresses || addresses.length === 0) {
     return `Calle Principal, 1, 35000, ${municipality}`
   }
-  const randomAddress = addresses[Math.floor(Math.random() * addresses.length)]
-  return `${randomAddress.street}, ${randomAddress.number}, ${randomAddress.postalCode}, ${randomAddress.municipality}`
+  const randomIndex = Math.floor(Math.random() * addresses.length)
+  const { street, number, postalCode, municipality: muni } = addresses[randomIndex]
+  return `${street}, ${number}, ${postalCode}, ${muni}`
 }

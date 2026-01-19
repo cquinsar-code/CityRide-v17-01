@@ -7,7 +7,9 @@ interface DirectionsResult {
   intermediateWaypoints: Array<{ lat: number; lon: number }>
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<DirectionsResult | { error: string }>> {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<DirectionsResult | { error: string }>> {
   try {
     const { startLat, startLon, endLat, endLon } = await request.json()
 
@@ -15,10 +17,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<Direction
       return NextResponse.json({ error: "All coordinates required" }, { status: 400 })
     }
 
-    const apiKey = process.env.GEOAPIFY_API_KEY || "54fbe366feed4818ae535114ba7dc592"
+    const apiKey =
+      process.env.GEOAPIFY_API_KEY || "54fbe366feed4818ae535114ba7dc592"
 
     const response = await fetch(
-      `https://api.routeoptimizer.geoapify.com/v1/routing?apiKey=${apiKey}&mode=drive&waypoints=${startLat},${startLon}|${endLat},${endLon}`,
+      `https://api.routeoptimizer.geoapify.com/v1/routing?apiKey=${apiKey}&mode=drive&waypoints=${startLat},${startLon}|${endLat},${endLon}`
     )
     const data = await response.json()
 
@@ -43,10 +46,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<Direction
         }
       }
 
-      return NextResponse.json({ distance, time, waypoints, intermediateWaypoints: intermediate })
+      return NextResponse.json({
+        distance,
+        time,
+        waypoints,
+        intermediateWaypoints: intermediate,
+      })
     }
 
-    return NextResponse.json({ distance: 0, time: 0, waypoints: [], intermediateWaypoints: [] })
+    return NextResponse.json({
+      distance: 0,
+      time: 0,
+      waypoints: [],
+      intermediateWaypoints: [],
+    })
   } catch (error) {
     console.error("Directions API error:", error)
     return NextResponse.json({ error: "Failed to get directions" }, { status: 500 })

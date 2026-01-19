@@ -1,9 +1,27 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 const STREETS_BY_MUNICIPALITY: Record<string, string[]> = {
-  "Las Palmas": ["Calle Mayor", "Avenida Viera y Clavijo", "Calle Colón", "Plaza Santa Ana", "Calle Presidente Alvear"],
-  Maspalomas: ["Avenida de Tirajana", "Calle del Mar", "Paseo Marítimo", "Avenida del Oasis", "Calle Las Retamas"],
-  Agüimes: ["Calle Real", "Plaza de la Constitución", "Calle Nueva", "Calle San Agustín", "Avenida de la Paz"],
+  "Las Palmas": [
+    "Calle Mayor",
+    "Avenida Viera y Clavijo",
+    "Calle Colón",
+    "Plaza Santa Ana",
+    "Calle Presidente Alvear",
+  ],
+  Maspalomas: [
+    "Avenida de Tirajana",
+    "Calle del Mar",
+    "Paseo Marítimo",
+    "Avenida del Oasis",
+    "Calle Las Retamas",
+  ],
+  Agüimes: [
+    "Calle Real",
+    "Plaza de la Constitución",
+    "Calle Nueva",
+    "Calle San Agustín",
+    "Avenida de la Paz",
+  ],
   "Santa Cruz de Tenerife": [
     "Calle Castillo",
     "Avenida Anaga",
@@ -25,7 +43,13 @@ const STREETS_BY_MUNICIPALITY: Record<string, string[]> = {
     "Calle Segunda",
     "Avenida Tercera",
   ],
-  Arrecife: ["Calle Real", "Avenida Marítima", "Plaza de Las Palmas", "Calle León y Castillo", "Avenida Femes"],
+  Arrecife: [
+    "Calle Real",
+    "Avenida Marítima",
+    "Plaza de Las Palmas",
+    "Calle León y Castillo",
+    "Avenida Femes",
+  ],
 }
 
 const POSTAL_CODES: Record<string, string> = {
@@ -49,7 +73,6 @@ export async function GET(request: NextRequest) {
   const postalCode = POSTAL_CODES[municipality] || "00000"
   const randomStreet = streets[Math.floor(Math.random() * streets.length)]
   const randomNumber = Math.floor(Math.random() * 200) + 1
-
   const address = `${randomStreet} ${randomNumber}, ${postalCode} ${municipality}`
 
   return NextResponse.json({ address })

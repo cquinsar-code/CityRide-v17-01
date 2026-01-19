@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 
-interface TaxiLocation {
+export interface TaxiLocation {
   lat: number
   lon: number
   address: string
@@ -10,12 +10,23 @@ interface TaxiLocation {
   isRealTime: boolean
 }
 
-export function useTaxiTracking(driverId: string | null) {
+interface UseTaxiTrackingReturn {
+  taxiLocation: TaxiLocation | null
+  isTracking: boolean
+  error: string
+  startTracking: () => void
+  stopTracking: () => void
+  getTaxiLocation: () => Promise<TaxiLocation | null>
+}
+
+export function useTaxiTracking(driverId: string | null): UseTaxiTrackingReturn {
   const [taxiLocation, setTaxiLocation] = useState<TaxiLocation | null>(null)
   const [isTracking, setIsTracking] = useState(false)
   const [error, setError] = useState<string>("")
+  const intervalRef = useRef<NodeJS.Timer | null>(null)
 
-  const getTaxiLocation = useCallback(async () => {
+  // Función para obtener la ubicación del taxi
+  const getTaxiLocation = useCallback(async (): Promise<TaxiLocation | null> => {
     if (!driverId) return null
 
     try {
@@ -26,7 +37,7 @@ export function useTaxiTracking(driverId: string | null) {
       })
 
       if (!response.ok) {
-        // Taxista no tiene ubicación compartida
+        setError("El taxista no tiene activada la ubicación en tiempo real")
         return null
       }
 
@@ -40,40 +51,47 @@ export function useTaxiTracking(driverId: string | null) {
       }
 
       setTaxiLocation(location)
+      setError("") // Clear previous errors
       return location
     } catch (err) {
-      setError("El taxista no tiene activada la ubicación en tiempo real")
+      console.error("Error fetching taxi location:", err)
+      setError("Error al obtener la ubicación del taxista")
       return null
     }
   }, [driverId])
 
+  // Inicia el tracking en intervalos
   const startTracking = useCallback(() => {
-    if (!driverId) return
+    if (!driverId || intervalRef.current) return
 
     setIsTracking(true)
-    const interval = setInterval(() => {
-      getTaxiLocation()
-    }, 5000) // Update every 5 seconds
+    getTaxiLocation() // Fetch immediately
 
-    return () => {
-      clearInterval(interval)
-      setIsTracking(false)
-    }
+    intervalRef.current = setInterval(() => {
+      getTaxiLocation()
+    }, 5000) // Actualiza cada 5 segundos
   }, [driverId, getTaxiLocation])
 
-  useEffect(() => {
-    if (isTracking && driverId) {
-      getTaxiLocation()
-      const cleanup = startTracking()
-      return cleanup
+  // Detiene el tracking
+  const stopTracking = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+      setIsTracking(false)
     }
-  }, [isTracking, driverId])
+  }, [])
+
+  // Limpieza automática al desmontar
+  useEffect(() => {
+    return () => stopTracking()
+  }, [stopTracking])
 
   return {
     taxiLocation,
     isTracking,
     error,
     startTracking,
+    stopTracking,
     getTaxiLocation,
   }
 }

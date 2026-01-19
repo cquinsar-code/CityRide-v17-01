@@ -1,8 +1,54 @@
+// \lib\initializeExampleData.ts
+
+export interface Driver {
+  id: string
+  name: string
+  username: string
+  password: string
+  email: string
+  phone: string
+  license: string
+  municipality: string
+  island: string
+  vehicleModel: string
+  vehiclePlate: string
+  seats: number
+  pmrAdapted: boolean
+  registeredAt: string
+}
+
+export interface Reservation {
+  id: string
+  name: string
+  phone: string
+  pickupDate: string
+  pickupTime: string
+  pickupLocation: string
+  destination: string
+  adults: number
+  children: number
+  pmr: number
+  observations: string
+  sku: string
+  acceptedBy: string | null
+  acceptedAt: string | null
+  createdAt: string
+}
+
+export interface AdminLog {
+  id: string
+  type: "driver_register" | "driver_login" | "reservation_accepted"
+  username: string
+  reservationSku?: string
+  timestamp: string
+  message: string
+}
+
 export function initializeExampleData() {
-  // Initialize drivers if not already present
+  // --- Drivers ---
   const existingDrivers = localStorage.getItem("taxi_drivers")
   if (!existingDrivers || JSON.parse(existingDrivers).length === 0) {
-    const exampleDrivers = [
+    const exampleDrivers: Driver[] = [
       {
         id: "driver1",
         name: "Juan García López",
@@ -55,10 +101,10 @@ export function initializeExampleData() {
     localStorage.setItem("taxi_drivers", JSON.stringify(exampleDrivers))
   }
 
-  // Initialize reservations if not already present
+  // --- Reservations ---
   const existingReservations = localStorage.getItem("reservations")
   if (!existingReservations || JSON.parse(existingReservations).length === 0) {
-    const exampleReservations = [
+    const exampleReservations: Reservation[] = [
       {
         id: "res1",
         name: "Pedro Martínez",
@@ -131,10 +177,10 @@ export function initializeExampleData() {
     localStorage.setItem("reservations", JSON.stringify(exampleReservations))
   }
 
-  // Initialize logs if not already present
+  // --- Admin logs ---
   const existingLogs = localStorage.getItem("admin_logs")
   if (!existingLogs || JSON.parse(existingLogs).length === 0) {
-    const exampleLogs = [
+    const exampleLogs: AdminLog[] = [
       {
         id: "log1",
         type: "driver_register",

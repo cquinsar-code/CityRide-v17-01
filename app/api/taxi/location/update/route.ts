@@ -6,7 +6,10 @@ export async function POST(request: NextRequest) {
     const { driverId, lat, lon, address } = await request.json()
 
     if (!driverId || lat === undefined || lon === undefined) {
-      return NextResponse.json({ error: "Driver ID and coordinates required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Driver ID and coordinates required" },
+        { status: 400 }
+      )
     }
 
     const supabase = await createServerClientComponent()
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
         address: address || "Ubicación",
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "driver_id" },
+      { onConflict: "driver_id" }
     )
 
     if (error) {

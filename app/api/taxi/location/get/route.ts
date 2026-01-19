@@ -11,9 +11,13 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerClientComponent()
 
-    const { data, error } = await supabase.from("taxi_locations").select("*").eq("driver_id", driverId).single()
+    const { data, error } = await supabase
+      .from("taxi_locations")
+      .select("*")
+      .eq("driver_id", driverId)
+      .single()
 
-    if (error) {
+    if (error || !data) {
       return NextResponse.json({ error: "Location not found" }, { status: 404 })
     }
 

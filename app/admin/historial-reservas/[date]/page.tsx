@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 import TicketReservationCard from "@/components/TicketReservationCard"
@@ -22,21 +23,31 @@ interface Reservation {
   is_fake?: boolean
 }
 
-export default function ReservationDetailPage({ params }: { params: { date: string } }) {
+export default function ReservationDetailPage({
+  params,
+}: {
+  params: { date: string }
+}) {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [drivers, setDrivers] = useState<any[]>([])
   const [selectedDate] = useState(params.date)
 
   useEffect(() => {
-    const storedReservations: Reservation[] = JSON.parse(localStorage.getItem("reservations") || "[]")
-    const storedDrivers = JSON.parse(localStorage.getItem("taxi_drivers") || "[]")
+    const storedReservations: Reservation[] = JSON.parse(
+      localStorage.getItem("reservations") || "[]"
+    )
+    const storedDrivers = JSON.parse(
+      localStorage.getItem("taxi_drivers") || "[]"
+    )
 
-    // Filter reservations for the selected date
     const dateReservations = storedReservations.filter((res) => {
       const resDate = new Date(res.pickupDate)
       const [day, month, year] = selectedDate.split("/")
-      const selectedDateObj = new Date(Number(year), Number(month) - 1, Number(day))
-
+      const selectedDateObj = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day)
+      )
       return (
         resDate.getDate() === selectedDateObj.getDate() &&
         resDate.getMonth() === selectedDateObj.getMonth() &&
@@ -50,8 +61,9 @@ export default function ReservationDetailPage({ params }: { params: { date: stri
 
   const getReservationStatus = (res: Reservation): string => {
     const now = new Date()
-    const pickupDateTime = new Date(`${res.pickupDate}T${res.pickupTime || "00:00"}`)
-
+    const pickupDateTime = new Date(
+      `${res.pickupDate}T${res.pickupTime || "00:00"}`
+    )
     if (res.status === "cancelled") return "cancelada"
     if (pickupDateTime < now) return "expirada"
     if (res.acceptedBy) return "aceptada"
@@ -75,7 +87,9 @@ export default function ReservationDetailPage({ params }: { params: { date: stri
 
           {reservations.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-xl text-sky-600">No hay reservas para esta fecha</p>
+              <p className="text-xl text-sky-600">
+                No hay reservas para esta fecha
+              </p>
             </div>
           ) : (
             <div className="grid gap-6">
@@ -84,7 +98,10 @@ export default function ReservationDetailPage({ params }: { params: { date: stri
                   key={res.id}
                   reservation={res}
                   status={getReservationStatus(res)}
-                  driverName={drivers.find((d: any) => d.username === res.acceptedBy)?.name}
+                  driverName={
+                    drivers.find((d: any) => d.username === res.acceptedBy)
+                      ?.name
+                  }
                 />
               ))}
             </div>
